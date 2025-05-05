@@ -8,7 +8,7 @@ on:
 jobs:
 
   audit:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
@@ -18,7 +18,7 @@ jobs:
         go-version: 1.23
     
     - name: Go modules Cache # Docs: <https://git.io/JfAKn#go---modules>
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       id: go-cache
       with:
         path: ~/go/pkg/mod
