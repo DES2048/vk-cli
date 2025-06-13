@@ -8,6 +8,8 @@ type Config struct {
 	TokenFile      string `yaml:"tokenFile" env:"TOKEN_FILE" env-default:"token.txt"`
 }
 
+var configValue *Config
+
 // ReadConfig ...
 func ReadConfig(file string) (*Config, error) {
 	var config Config
@@ -15,6 +17,18 @@ func ReadConfig(file string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &config, nil
+}
+
+// SetConfig
+func SetConfig(config *Config) {
+	configValue = config
+}
+
+// GetConfig ...
+func GetConfig() *Config {
+	if configValue == nil {
+		panic("config is nil")
+	}
+	return configValue
 }

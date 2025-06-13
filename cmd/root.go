@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"log"
+	"vk-cli/config"
+
 	"github.com/spf13/cobra"
 )
 
@@ -22,4 +25,9 @@ func init() {
 }
 
 func initConfig() {
+	cfg, err := config.ReadConfig(ConfigFile)
+	if err != nil {
+		log.Fatalf("Failed to load config: %s\n", err)
+	}
+	config.SetConfig(cfg)
 }
