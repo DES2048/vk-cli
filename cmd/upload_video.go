@@ -1,17 +1,16 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"log/slog"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"vk-cli/auth"
+	"vk-cli/client"
 	"vk-cli/config"
 	"vk-cli/group"
+	"vk-cli/util"
 	"vk-cli/video"
 
-	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/spf13/cobra"
 )
 
@@ -24,37 +23,21 @@ var (
 		Use:   "upload-video",
 		Short: " upload video(s) to group",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			groupId := 0
 
 			// get config
-			config, err := config.ReadConfig(ConfigFile)
+			config := config.GetConfig()
+			// build client
+			vk, err := client.BuildVkClient()
 			if err != nil {
-				log.Fatalf("Failed to load config: %s\n", err)
+				return err
 			}
-
-			// get token
-			token, err := auth.CheckAuth(config.TokenFile)
-			if err != nil {
-				log.Fatalf("Failed to get token:%s\n", err)
-			}
-
-			vk := api.NewVK(token)
-
 			// if group is a group title get group id
 			if len(groupVar) > 0 {
-				groupId, err = strconv.Atoi(groupVar)
+				groupId, err = group.GetGroupId(vk, groupVar)
 				if err != nil {
-					// try to get group id by name
-					group, err := group.GetGroupByName(vk, groupVar)
-					if err != nil {
-						log.Fatalf("failed to get group by name: %s", err)
-					}
-
-					if group == nil {
-						log.Fatal("group with given name not found")
-					}
-					groupId = group.ID
+					return fmt.Errorf("failed to get group id: %w", err)
 				}
 			} else {
 				groupId = config.DefaultGroupID
@@ -65,13 +48,13 @@ var (
 
 				album, err := video.GetVideoAlbumByTitle(vk, -groupId, addAlbumTitle)
 				if err != nil {
-					log.Fatalf("failed to get albums: %s\n", err)
+					return fmt.Errorf("failed to get albums: %w", err)
 				}
 
 				if album == nil {
 					albumID, err = video.AddVideoAlbum(vk, groupId, addAlbumTitle)
 					if err != nil {
-						log.Fatalf("Failed to create album: %s\n", err)
+						return fmt.Errorf("failed to create album: %w", err)
 					}
 
 					slog.Info("Added new album", "id", albumID, "title", addAlbumTitle)
@@ -80,33 +63,36 @@ var (
 				}
 			}
 
-			// upload videos
-			filenames := args
+			videofiles, err := util.GetFilenamesFromArgs(args, util.VideoFileExtSet)
+			if err != nil {
+				return fmt.Errorf("failed to get videos from args: %w", err)
+			}
 
 			videos, err := video.GetVideos(vk, -groupId, albumID)
 			if err != nil {
-				log.Fatalf("failed to get videos list: %s", err)
+				return fmt.Errorf("failed to get videos list: %w", err)
 			}
 			// create videos map
-			videosTitleMap := make(map[string]bool)
+			videosTitleMap := make(map[string]bool, len(videos))
 
 			for _, video := range videos {
 				videosTitleMap[video.Title] = true
 			}
 
-			for idx, filename := range filenames {
+			for idx, filename := range videofiles {
 				videoName := filepath.Base(filename)
 				videoTitle, _ := strings.CutSuffix(videoName, filepath.Ext(videoName))
 
 				if _, ok := videosTitleMap[videoTitle]; ok {
-					slog.Info("skipped video", "index", idx+1, "of", len(filenames), "file", filename, "title", videoTitle)
+					slog.Info("skipped video", "index", idx+1, "of", len(videofiles), "file", filename, "title", videoTitle)
 					continue
 				}
 
-				slog.Info("upload video", "index", idx+1, "of", len(filenames), "file", filename, "title", videoTitle)
+				slog.Info("upload video", "index", idx+1, "of", len(videofiles), "file", filename, "title", videoTitle)
 
 				video.UploadVideo(vk, filename, groupId, albumID, videoTitle)
 			}
+			return nil
 		},
 	}
 )
