@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SevereCloud/vksdk/v2/api"
-	"github.com/SevereCloud/vksdk/v2/object"
+	"github.com/SevereCloud/vksdk/v3/api"
+	"github.com/SevereCloud/vksdk/v3/object"
 )
 
 func GetGroupByName(client *api.VK, name string) (*object.GroupsGroup, error) {

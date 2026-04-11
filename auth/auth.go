@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SevereCloud/vksdk/v2/api/oauth"
+	"github.com/SevereCloud/vksdk/v3/api/oauth"
 )
 
 func input(prompt string, val *string) {

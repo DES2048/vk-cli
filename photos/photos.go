@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/SevereCloud/vksdk/v2/api"
-	"github.com/SevereCloud/vksdk/v2/object"
+	"github.com/SevereCloud/vksdk/v3/api"
+	"github.com/SevereCloud/vksdk/v3/object"
 )
 
 func UploadPhoto(client *api.VK, filename string, groupID int, albumID int) {

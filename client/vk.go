@@ -5,7 +5,7 @@ import (
 	"vk-cli/auth"
 	"vk-cli/config"
 
-	"github.com/SevereCloud/vksdk/v2/api"
+	"github.com/SevereCloud/vksdk/v3/api"
 )
 
 func BuildVkClient() (*api.VK, error) {
