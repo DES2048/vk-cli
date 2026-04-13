@@ -2,7 +2,7 @@ package video
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"log/slog"
 	"os"
 	"slices"
@@ -12,10 +12,10 @@ import (
 	"github.com/SevereCloud/vksdk/v3/object"
 )
 
-func UploadVideo(client *api.VK, filename string, groupID int, albumID int, videoTitle string) {
+func UploadVideo(client *api.VK, filename string, groupID int, albumID int, videoTitle string) error {
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("Error opening videofile: %s\n", err)
+		return fmt.Errorf("error opening videofile: %w", err)
 	}
 
 	resp, err := client.UploadVideo(api.Params{
@@ -24,11 +24,12 @@ func UploadVideo(client *api.VK, filename string, groupID int, albumID int, vide
 		"album_id": albumID,
 	}, file)
 	if err != nil {
-		slog.Error("Failed to upload video", "file", filename, "error", err)
+		return fmt.Errorf("failed to upload video: %w", err)
 	}
 
 	m, _ := json.MarshalIndent(resp, "", "  ")
 	slog.Debug("upload response", "response", string(m))
+	return nil
 }
 
 func GetVideoAlbumByTitle(client *api.VK, ownerID int, title string) (*object.VideoVideoAlbum, error) {

@@ -79,19 +79,37 @@ var (
 				videosTitleMap[video.Title] = true
 			}
 
+			// upload videos loop
+			successCount, errCount, skipCount := 0, 0, 0
 			for idx, filename := range videofiles {
 				videoName := filepath.Base(filename)
 				videoTitle, _ := strings.CutSuffix(videoName, filepath.Ext(videoName))
 
+				uplLogger := slog.With(
+					slog.Int("index", idx),
+					slog.Int("of", len(videofiles)),
+					slog.String("file", filename),
+					slog.String("title", videoTitle),
+				)
+
 				if _, ok := videosTitleMap[videoTitle]; ok {
-					slog.Info("skipped video", "index", idx+1, "of", len(videofiles), "file", filename, "title", videoTitle)
+					skipCount++
+					uplLogger.Info("skipped video")
 					continue
 				}
 
-				slog.Info("upload video", "index", idx+1, "of", len(videofiles), "file", filename, "title", videoTitle)
+				uplLogger.Info("upload video")
 
-				video.UploadVideo(vk, filename, groupId, albumID, videoTitle)
+				err := video.UploadVideo(vk, filename, groupId, albumID, videoTitle)
+				if err != nil {
+					errCount++
+					uplLogger.Error("Failed to upload video", slog.String("error", err.Error()))
+				}
+
+				successCount++
 			}
+
+			slog.Info("Summary", "success", successCount, "skipped", skipCount, "failed", errCount, "of", len(videofiles))
 			return nil
 		},
 	}
