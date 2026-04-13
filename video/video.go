@@ -67,5 +67,25 @@ func GetVideos(client *api.VK, ownerID int, albumID int) ([]object.VideoVideo, e
 		"owner_id": ownerID,
 		"album_id": albumID,
 	})
-	return resp.Items, err
+
+	allCount := resp.Count
+	fetched := len(resp.Items)
+	items := resp.Items
+
+	for allCount > fetched {
+		resp, err := client.VideoGet(api.Params{
+			"owner_id": ownerID,
+			"album_id": albumID,
+			"offset":   fetched,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		fetched += len(resp.Items)
+		items = append(items, resp.Items...)
+
+	}
+	slog.Debug("videos list", "count", resp.Count, "items", len(items))
+	return items, err
 }
