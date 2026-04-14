@@ -63,7 +63,7 @@ var (
 				}
 			}
 
-			videofiles, err := util.GetFilenamesFromArgs(args, util.VideoFileExtSet)
+			videofiles, err := util.GetFilesFromArgs(args, util.VideoFileExtSet)
 			if err != nil {
 				return fmt.Errorf("failed to get videos from args: %w", err)
 			}
@@ -81,14 +81,14 @@ var (
 
 			// upload videos loop
 			successCount, errCount, skipCount := 0, 0, 0
-			for idx, filename := range videofiles {
-				videoName := filepath.Base(filename)
+			for idx, file := range videofiles {
+				videoName := file.Info.Name()
 				videoTitle, _ := strings.CutSuffix(videoName, filepath.Ext(videoName))
 
 				uplLogger := slog.With(
 					slog.Int("index", idx),
 					slog.Int("of", len(videofiles)),
-					slog.String("file", filename),
+					slog.String("file", file.Path),
 					slog.String("title", videoTitle),
 				)
 
@@ -100,7 +100,7 @@ var (
 
 				uplLogger.Info("upload video")
 
-				err := video.UploadVideo(vk, filename, groupId, albumID, videoTitle)
+				err := video.UploadVideo(vk, file.Path, groupId, albumID, videoTitle)
 				if err != nil {
 					errCount++
 					uplLogger.Error("Failed to upload video", slog.String("error", err.Error()))
@@ -119,6 +119,5 @@ func init() {
 	uploadVideoCmd.Flags().StringVar(&groupVar, "group", "", "group name or group id")
 	uploadVideoCmd.Flags().IntVar(&albumID, "album", 0, "album id")
 	uploadVideoCmd.Flags().StringVar(&addAlbumTitle, "add-album", "", "title for new album")
-
 	RootCmd.AddCommand(uploadVideoCmd)
 }

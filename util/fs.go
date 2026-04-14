@@ -11,6 +11,11 @@ import (
 
 type ExtSet map[string]bool
 
+type File struct {
+	Path string
+	Info fs.FileInfo
+}
+
 var VideoFileExtSet = ExtSet{
 	"mp4": true,
 	"m4v": true,
@@ -34,8 +39,8 @@ func TestFileNameByExtSet(filename string, extSet ExtSet) bool {
 	return ok
 }
 
-func GetFilenamesByExtSet(root string, extSet ExtSet, recursive bool) ([]string, error) {
-	filenames := make([]string, 0)
+func GetFilesByExtSet(root string, extSet ExtSet, recursive bool) ([]*File, error) {
+	files := make([]*File, 0)
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -45,21 +50,27 @@ func GetFilenamesByExtSet(root string, extSet ExtSet, recursive bool) ([]string,
 		if !recursive && d.IsDir() && path != root {
 			return filepath.SkipDir
 		}
-
 		if TestFileNameByExtSet(path, extSet) {
-			filenames = append(filenames, path)
+			fi, err := d.Info()
+			if err != nil {
+				return err
+			}
+			files = append(files, &File{
+				Path: path,
+				Info: fi,
+			})
 		}
 		return nil
 	})
-	return filenames, err
+	return files, err
 }
 
-func GetVideoFilesFromDir(path string, recursive bool) ([]string, error) {
-	return GetFilenamesByExtSet(path, VideoFileExtSet, recursive)
+func GetVideoFilesFromDir(path string, recursive bool) ([]*File, error) {
+	return GetFilesByExtSet(path, VideoFileExtSet, recursive)
 }
 
-func GetImageFilesFromDir(path string, recursive bool) ([]string, error) {
-	return GetFilenamesByExtSet(path, ImageFileExtSet, recursive)
+func GetImageFilesFromDir(path string, recursive bool) ([]*File, error) {
+	return GetFilesByExtSet(path, ImageFileExtSet, recursive)
 }
 
 func FilterFilesByExtSet(files []string, extSet ExtSet) []string {
@@ -68,9 +79,9 @@ func FilterFilesByExtSet(files []string, extSet ExtSet) []string {
 	})
 }
 
-func GetFilenamesFromArgs(args []string, extSet ExtSet) ([]string, error) {
+func GetFilesFromArgs(args []string, extSet ExtSet) ([]*File, error) {
 	filenames := args
-	videofiles := make([]string, 0)
+	videofiles := make([]*File, 0)
 
 	// work with dirs if any
 	for idx, filename := range filenames {
@@ -80,7 +91,7 @@ func GetFilenamesFromArgs(args []string, extSet ExtSet) ([]string, error) {
 		}
 
 		if stat.IsDir() {
-			videos, err := GetFilenamesByExtSet(filename, extSet, false)
+			videos, err := GetFilesByExtSet(filename, extSet, false)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get videofiles from dir: %w", err)
 			}
@@ -89,7 +100,10 @@ func GetFilenamesFromArgs(args []string, extSet ExtSet) ([]string, error) {
 			filenames = append(filenames[:idx], filenames[:idx+1]...)
 		} else {
 			if TestFileNameByExtSet(filename, VideoFileExtSet) {
-				videofiles = append(videofiles, filename)
+				videofiles = append(videofiles, &File{
+					Path: filename,
+					Info: stat,
+				})
 			}
 		}
 

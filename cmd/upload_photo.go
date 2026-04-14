@@ -63,15 +63,15 @@ var (
 			}
 
 			// upload photos
-			filenames, err := util.GetFilenamesFromArgs(args, util.ImageFileExtSet)
+			files, err := util.GetFilesFromArgs(args, util.ImageFileExtSet)
 			if err != nil {
 				return fmt.Errorf("failed to get photos from args: %w", err)
 			}
 
-			for idx, filename := range filenames {
-				slog.Info("upload photo", "index", idx+1, "of", len(filenames), "file", filename)
+			for idx, file := range files {
+				slog.Info("upload photo", "index", idx+1, "of", len(files), "file", file.Path)
 
-				photos.UploadPhoto(vk, filename, groupId, photoAlbumID)
+				photos.UploadPhoto(vk, file.Path, groupId, photoAlbumID)
 			}
 			return nil
 		},
