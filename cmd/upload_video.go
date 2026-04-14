@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
+	"time"
 	"vk-cli/client"
 	"vk-cli/config"
 	"vk-cli/group"
@@ -19,6 +21,7 @@ var (
 	albumID       = 0
 	addAlbumTitle = ""
 	groupVar      = ""
+	modTimeSince  time.Time
 
 	uploadVideoCmd = &cobra.Command{
 		Use:   "upload-video",
@@ -64,11 +67,21 @@ var (
 				}
 			}
 
+			// get videofiles from args
 			videofiles, err := util.GetFilesFromArgs(args, util.VideoFileExtSet)
 			if err != nil {
 				return fmt.Errorf("failed to get videos from args: %w", err)
 			}
 
+			// filter videofiles if any
+			if !modTimeSince.IsZero() {
+				slog.Debug("used mt since", "value", modTimeSince.Format(time.DateTime))
+				videofiles = slices.DeleteFunc(videofiles, func(f *util.File) bool {
+					return f.Info.ModTime().Before(modTimeSince)
+				})
+			}
+
+			// get videos list from vk
 			videos, err := video.GetVideos(vk, -groupId, albumID)
 			if err != nil {
 				return fmt.Errorf("failed to get videos list: %w", err)
@@ -81,6 +94,7 @@ var (
 			}
 
 			// upload videos loop
+			// counters
 			successCount, errCount, skipCount := 0, 0, 0
 			for idx, file := range videofiles {
 				videoName := file.Info.Name()
@@ -121,5 +135,6 @@ func init() {
 	uploadVideoCmd.Flags().StringVar(&groupVar, "group", "", "group name or group id")
 	uploadVideoCmd.Flags().IntVar(&albumID, "album", 0, "album id")
 	uploadVideoCmd.Flags().StringVar(&addAlbumTitle, "add-album", "", "title for new album")
+	uploadVideoCmd.Flags().TimeVar(&modTimeSince, "mt-since", time.Time{}, []string{time.DateTime, time.DateOnly}, "filter files by modtime since")
 	RootCmd.AddCommand(uploadVideoCmd)
 }
