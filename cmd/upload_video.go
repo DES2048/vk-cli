@@ -22,6 +22,7 @@ var (
 	addAlbumTitle = ""
 	groupVar      = ""
 	modTimeSince  time.Time
+	sizeFVar      = SizeFlagValue{}
 
 	uploadVideoCmd = &cobra.Command{
 		Use:   "upload-video",
@@ -81,6 +82,21 @@ var (
 				})
 			}
 
+			if sizeFVar.Value > 0 {
+				slog.Debug("used size filter", "value", sizeFVar.Value, "gt", sizeFVar.IsGt)
+
+				videofiles = slices.DeleteFunc(videofiles, func(f *util.File) bool {
+					filterGt := sizeFVar.Value >= uint64(f.Info.Size())
+					if sizeFVar.IsGt {
+						return filterGt
+					} else {
+						return !filterGt
+					}
+					//	return sizeFVar.IsGt && cmp <= 0 || !sizeFVar.IsGt && cmp > 0
+				})
+
+			}
+
 			// get videos list from vk
 			videos, err := video.GetVideos(vk, -groupId, albumID)
 			if err != nil {
@@ -136,5 +152,6 @@ func init() {
 	uploadVideoCmd.Flags().IntVar(&albumID, "album", 0, "album id")
 	uploadVideoCmd.Flags().StringVar(&addAlbumTitle, "add-album", "", "title for new album")
 	uploadVideoCmd.Flags().TimeVar(&modTimeSince, "mt-since", time.Time{}, []string{time.DateTime, time.DateOnly}, "filter files by modtime since")
+	uploadVideoCmd.Flags().Var(&sizeFVar, "size", " size filter in format <100mb or >1mb etc")
 	RootCmd.AddCommand(uploadVideoCmd)
 }
