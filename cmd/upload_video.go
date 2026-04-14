@@ -11,6 +11,7 @@ import (
 	"vk-cli/util"
 	"vk-cli/video"
 
+	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -90,6 +91,7 @@ var (
 					slog.Int("of", len(videofiles)),
 					slog.String("file", file.Path),
 					slog.String("title", videoTitle),
+					slog.String("size_h", humanize.Bytes(uint64(file.Info.Size()))),
 				)
 
 				if _, ok := videosTitleMap[videoTitle]; ok {
