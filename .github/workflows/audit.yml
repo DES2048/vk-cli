@@ -47,10 +47,12 @@ jobs:
       run: golint ./...
 
     - name: Build binaries
+      env:
+          BUILD_FLAGS: '-ldflags="-s -w"'
       run: |
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "vk-cli-linux-amd64"
-        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o "vk-cli-linux-arm64"
-        CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o "vk-cli-windows-amd64.exe"
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $BUILD_FLAGS -o "vk-cli-linux-amd64"
+        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build $BUILD_FLAGS -o "vk-cli-linux-arm64"
+        CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build $BUILD_FLAGS -o "vk-cli-windows-amd64.exe"
 
     - name: ls
       run: ls -l
