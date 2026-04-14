@@ -18,11 +18,11 @@ import (
 )
 
 var (
-	albumID       = 0
-	addAlbumTitle = ""
-	groupVar      = ""
-	modTimeSince  time.Time
-	sizeFVar      = SizeFlagValue{}
+	albumVar     = ""
+	addAlbum     = false
+	groupVar     = ""
+	modTimeSince time.Time
+	sizeFVar     = SizeFlagValue{}
 
 	uploadVideoCmd = &cobra.Command{
 		Use:   "upload-video",
@@ -30,6 +30,7 @@ var (
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			groupId := 0
+			albumId := 0
 
 			// get config
 			config := config.GetConfig()
@@ -47,25 +48,26 @@ var (
 			} else {
 				groupId = config.DefaultGroupID
 			}
-			// add album if any
-			if addAlbumTitle != "" {
-				var err error
 
-				album, err := video.GetVideoAlbumByTitle(vk, -groupId, addAlbumTitle)
-				if err != nil {
-					return fmt.Errorf("failed to get albums: %w", err)
-				}
+			// get album by title
+			album, err := video.GetVideoAlbumByTitle(vk, -groupId, albumVar)
+			if err != nil {
+				return fmt.Errorf("failed to get albums: %w", err)
+			}
 
-				if album == nil {
-					albumID, err = video.AddVideoAlbum(vk, groupId, addAlbumTitle)
+			// if album not found
+			if album == nil {
+				if addAlbum {
+					albumId, err = video.AddVideoAlbum(vk, groupId, albumVar)
 					if err != nil {
 						return fmt.Errorf("failed to create album: %w", err)
 					}
-
-					slog.Info("Added new album", "id", albumID, "title", addAlbumTitle)
+					slog.Info("Added new album", "id", albumVar, "title", addAlbum)
 				} else {
-					albumID = album.ID
+					return fmt.Errorf("failed to find album with title: %s", albumVar)
 				}
+			} else {
+				albumId = album.ID
 			}
 
 			// get videofiles from args
@@ -98,7 +100,7 @@ var (
 			}
 
 			// get videos list from vk
-			videos, err := video.GetVideos(vk, -groupId, albumID)
+			videos, err := video.GetVideos(vk, -groupId, albumId)
 			if err != nil {
 				return fmt.Errorf("failed to get videos list: %w", err)
 			}
@@ -132,7 +134,7 @@ var (
 
 				uplLogger.Info("upload video")
 
-				err := video.UploadVideo(vk, file.Path, groupId, albumID, videoTitle)
+				err := video.UploadVideo(vk, file.Path, groupId, albumId, videoTitle)
 				if err != nil {
 					errCount++
 					uplLogger.Error("Failed to upload video", slog.String("error", err.Error()))
@@ -148,9 +150,9 @@ var (
 )
 
 func init() {
-	uploadVideoCmd.Flags().StringVar(&groupVar, "group", "", "group name or group id")
-	uploadVideoCmd.Flags().IntVar(&albumID, "album", 0, "album id")
-	uploadVideoCmd.Flags().StringVar(&addAlbumTitle, "add-album", "", "title for new album")
+	uploadVideoCmd.Flags().StringVarP(&groupVar, "group", "g", "", "group name or group id")
+	uploadVideoCmd.Flags().StringVarP(&albumVar, "album", "a", "", "album name or album id")
+	uploadVideoCmd.Flags().BoolVar(&addAlbum, "add-album", false, "allow to create new album if it didn't find")
 	uploadVideoCmd.Flags().TimeVar(&modTimeSince, "mt-since", time.Time{}, []string{time.DateTime, time.DateOnly}, "filter files by modtime since")
 	uploadVideoCmd.Flags().Var(&sizeFVar, "size", " size filter in format <100mb or >1mb etc")
 	RootCmd.AddCommand(uploadVideoCmd)
